@@ -10,7 +10,7 @@ app.ws("/", (ws, req) => {
   // Validate the auth token
   if (req.query.token === "bhasker") {
     // when we recieve refresh token
-    ws.on("message", msg => {
+    ws.on("message", (msg) => {
       let obj = JSON.parse(msg);
       if (obj.type === "refreshToken") {
         // this is temp, in real scenario will be using JWT
@@ -27,7 +27,7 @@ app.ws("/", (ws, req) => {
       console.log("current token", ws.token);
       // First test if jwt is valid...
       // jwt.verify(ws.token,(err,decoded)=>{
-      wsinstance.getWss().clients.forEach(c => {
+      wsinstance.getWss().clients.forEach((c) => {
         c.send("hello");
       });
       //})
@@ -42,6 +42,6 @@ app.ws("/", (ws, req) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("simple get");
+  res.sendFile(__dirname + "/index.html");
 });
 app.listen(8080);
