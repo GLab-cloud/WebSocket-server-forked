@@ -11,7 +11,7 @@
         color: #fff;
       }
       #log {
-        background: #fff;
+        background: #121212;
         padding: 10px;
         height: 300px;
         overflow-y: scroll;
@@ -46,9 +46,28 @@
       log.textContent = entry + log.textContent;
     };
     socket.addEventListener("open", () => {
-      statusEl.textContent = "CONNECTED: ws://localhost:8080";
+      statusEl.textContent =
+        "CONNECTED websockets server at: ws://whl9dn-8080.csb.app";
       statusEl.className = "status-on";
-      appendLog("[SYSTEM]", "Tunel Established");
+      appendLog("[SYSTEM]", "Tunnel Established");
+    });
+    socket.addEventListener("close", () => {
+      statusEl.textContent =
+        "DISCONNECTED websockets server at: ws://whl9dn-8080.csb.app";
+      statusEl.className = "status-off";
+      appendLog("[SYSTEM]", "Tunnel Collapsed");
+    });
+    socket.addEventListener("message", (e) => {
+      appendLog("[RECEIVED]", e.data);
+    });
+    document.getElementById("message-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (socket.readyState == !WebSocket.OPEN)
+        appendLog("[ERROR]", "No active tunnel found");
+      const msg = input.value.trim();
+      socket.send(msg);
+      appendLog("[SENT]", msg);
+      input.value = "";
     });
   </script>
 </html>
