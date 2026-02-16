@@ -39,7 +39,7 @@
     const statusEl = document.getElementById("status");
     const log = document.getElementById("log");
     const input = document.getElementById("message-input");
-    //1. Initial the handshake
+    //1. Initial the handshake to the WebSocket server
     const socket = new WebSocket("ws://whl9dn-8080.csb.app");
     const appendLog = (label, message) => {
       const entry = `${new Date().toLocaleTimeString()} ${label} ${message}\n`;
