@@ -1,6 +1,6 @@
 import { z } from "zod";
 export const MATCH_STATUS = {
-  SHEDULED: "scheduled",
+  SCHEDULED: "scheduled",
   FINISHED: "finished",
   LIVE: "live",
 };
