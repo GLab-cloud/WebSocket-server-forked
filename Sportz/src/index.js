@@ -12,7 +12,9 @@ app.get("/", (req, res) => {
 });
 app.use("/matches", matchRouter);
 const { broadcastMatchCreated } = attachWebSocketServer(server);
+//sharing function broadcastMatchCreated
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
+//consider use DI or event emitter pattern for larger app
 server.listen(PORT, HOST, () => {
   const baseUrl =
     HOST === "0.0.0.0"

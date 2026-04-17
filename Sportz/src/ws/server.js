@@ -36,5 +36,6 @@ export function attachWebSocketServer(server) {
   function broadcastMatchCreated(match) {
     broadcast(wss, { type: "match_created", data: match });
   }
+  //sharing function broadcastMatchCreated
   return { broadcastMatchCreated };
 }
