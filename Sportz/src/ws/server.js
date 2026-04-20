@@ -12,29 +12,59 @@ function broadcast(wss, payload) {
 }
 export function attachWebSocketServer(server) {
   const wss = new WebSocketServer({
-    server,
+    noServer:true,
     path: "/ws",
     maxPayload: 1024 * 1024,
   });
-  wss.on("connection", async (socket, req) => {
-    //ws arcjet
-    if (wsArcjet) {
-      try {
+  // wss.on("connection", async (socket, req) => {
+  //   //ws arcjet
+  //   if (wsArcjet) {
+  //     try {
+  //       const decision = await wsArcjet.protect(req);
+  //       if (decision.isDenied()) {
+  //         const code = decision.reason.isRateLimit() ? 1013 : 1008;
+  //         const reason = decision.reason.isRateLimit()
+  //           ? "Rate limit has exceeded"
+  //           : "Access denied";
+  //         socket.close(code, reason);
+  //         return;
+  //       }
+  //     } catch (e) {
+  //       console.error("Websocket connection error", e);
+  //       socket.close(1011, "Server security error");
+  //       return;
+  //     }
+  //   }
+
+  // Move Arcjet protection to the HTTP upgrade event handler 
+    server.on('upgrade', async(req,socket,head)=>
+      {
+      const {pathname} =new URL(req.url,`http://${req.headers.host}`);
+      if(pathname!=='/ws') { return }
+      if (wsArcjet)
+        {
+        try {
         const decision = await wsArcjet.protect(req);
         if (decision.isDenied()) {
-          const code = decision.reason.isRateLimit() ? 1013 : 1008;
-          const reason = decision.reason.isRateLimit()
-            ? "Rate limit has exceeded"
-            : "Access denied";
-          socket.close(code, reason);
-          return;
+          if(decision.reason.isRateLimit()){
+            socket.write('HTTP/1.1 429 To Many Requests\r\n\r\n')
+          }
+          else{
+            socket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
         }
-      } catch (e) {
-        console.error("Websocket connection error", e);
-        socket.close(1011, "Server security error");
+        socket.destroy();
         return;
+      } 
+    }
+      catch (e) {
+        console.error('WebSocket upgrade protection error',e);
+        socket.write('HTTP/1.1 500 Internal Server Eror\r\n\r\n');
+        socket.destroy();
+        return;
+
       }
     }
+   wss.handleUpgrade(req,socket,head,(ws)=>{wss.emit('connection',ws,req)})
     //implementing ping/pong heartbeat checking for LIVE connection
     socket.isAlive = true;
     socket.on("pong", () => {
@@ -43,6 +73,7 @@ export function attachWebSocketServer(server) {
     sendJson(socket, { type: "welcome" });
     socket.on("error", console.error);
   });
+
   const interval = setInterval(() => {
     wss.clients.forEach((ws) => {
       if (ws.isAlive === false) return ws.terminate();
