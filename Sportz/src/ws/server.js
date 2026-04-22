@@ -12,7 +12,7 @@ function broadcast(wss, payload) {
 }
 export function attachWebSocketServer(server) {
   const wss = new WebSocketServer({
-    noServer:true,
+    noServer: true,
     path: "/ws",
     maxPayload: 1024 * 1024,
   });
@@ -36,42 +36,40 @@ export function attachWebSocketServer(server) {
   //     }
   //   }
 
-  // Move Arcjet protection to the HTTP upgrade event handler 
-    server.on('upgrade', async(req,socket,head)=>
-      {
-      const {pathname} =new URL(req.url,`http://${req.headers.host}`);
-      if(pathname!=='/ws') { return }
-      if (wsArcjet)
-        {
-        try {
+  // Move Arcjet protection to the HTTP upgrade event handler
+  server.on("upgrade", async (req, socket, head) => {
+    const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+    if (pathname !== "/ws") {
+      return;
+    }
+    if (wsArcjet) {
+      try {
         const decision = await wsArcjet.protect(req);
         if (decision.isDenied()) {
-          if(decision.reason.isRateLimit()){
-            socket.write('HTTP/1.1 429 To Many Requests\r\n\r\n')
+          if (decision.reason.isRateLimit()) {
+            socket.write("HTTP/1.1 429 To Many Requests\r\n\r\n");
+          } else {
+            socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
           }
-          else{
-            socket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
+          socket.destroy();
+          return;
         }
+      } catch (e) {
+        console.error("WebSocket upgrade protection error", e);
+        socket.write("HTTP/1.1 500 Internal Server Eror\r\n\r\n");
         socket.destroy();
         return;
-      } 
-    }
-      catch (e) {
-        console.error('WebSocket upgrade protection error',e);
-        socket.write('HTTP/1.1 500 Internal Server Eror\r\n\r\n');
-        socket.destroy();
-        return;
-
       }
     }
-   wss.handleUpgrade(req,socket,head,(ws)=>{wss.emit('connection',ws,req)})
-    //implementing ping/pong heartbeat checking for LIVE connection
-    socket.isAlive = true;
-    socket.on("pong", () => {
-      socket.isAlive = true;
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("connection", ws, req);
+      ws.isAlive = true;
+      ws.on("pong", () => {
+        ws.isAlive = true;
+      });
+      sendJson(ws, { type: "welcome" });
+      ws.on("error", console.error);
     });
-    sendJson(socket, { type: "welcome" });
-    socket.on("error", console.error);
   });
 
   const interval = setInterval(() => {
