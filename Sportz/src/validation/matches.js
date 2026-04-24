@@ -10,15 +10,17 @@ export const listMatchesQuerySchema = z.object({
 export const matchIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
-// const isoDateString = z.string().refine((val) => !isNaN(Date.parse(val)), {
-//   message: "Invalid ISO date string",
-// });
-const isoDateString=z.iso.datetime() // Suggested refactor CodeRabbit.ai'
+
+// Fixed: Correct Zod datetime validation
+const isoDateString = z.string().datetime({
+  message: "Invalid ISO 8601 datetime string",
+});
+
 export const createMatchSchema = z
   .object({
-    sport: z.string().min(1),
-    homeTeam: z.string().min(1),
-    awayTeam: z.string().min(1),
+    sport: z.string().min(1, "Sport is required"),
+    homeTeam: z.string().min(1, "Home team is required"),
+    awayTeam: z.string().min(1, "Away team is required"),
     startTime: isoDateString,
     endTime: isoDateString,
     homeScore: z.coerce.number().int().nonnegative().optional(),
@@ -29,12 +31,13 @@ export const createMatchSchema = z
     const end = new Date(data.endTime);
     if (end <= start) {
       ctx.addIssue({
-        code: z.custom,
+        code: z.ZodIssueCode.custom,
         message: "endTime must be chronologically after startTime",
         path: ["endTime"],
       });
     }
   });
+
 export const updateScoreSchema = z.object({
   homeScore: z.coerce.number().int().nonnegative(),
   awayScore: z.coerce.number().int().nonnegative(),
