@@ -3,6 +3,7 @@ import http from "http";
 import { matchRouter } from "./routes/matches.js";
 import { attachWebSocketServer } from "./ws/server.js";
 import { securityMiddleware } from "./arcjet.js";
+import { commentaryRouter } from "./routes/commentary.js";
 const PORT = Number(process.env.PORT) || 8000;
 const HOST = Number(process.env.HOST) || "0.0.0.0";
 const app = express();
@@ -14,6 +15,19 @@ app.get("/", (req, res) => {
 //429 - http_code: for i in {1..60}; do curl -s -o /dev/nul -w "%{http_code}\n" http://localhost:8000/matches ; done
 app.use(securityMiddleware());
 app.use("/matches", matchRouter);
+app.use("/matches/:id/commentary", commentaryRouter);
+
+app.use((err, req, res, next) => {
+  if (err.type === "entity.parse.failed") {
+    res.status(400).json({ error: "Invalid JSON in request body" });
+    return;
+  }
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({
+    error: err.message || "Internal Server Error",
+  });
+});
+
 const { broadcastMatchCreated } = attachWebSocketServer(server);
 //sharing function broadcastMatchCreated
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
