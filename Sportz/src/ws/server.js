@@ -1,10 +1,41 @@
 import { WebSocket, WebSocketServer } from "ws";
 import { wsArcjet } from "../arcjet.js";
+const matchSubscribers = new Map();
+
+function subscribe(matchId, socket) {
+  if (!matchSubscribers.has(matchId)) {
+    matchSubscribers.set(matchId, new Set());
+  }
+  matchSubscribers.get(matchId).add(socket);
+}
+function unsubscribe(matchId, socket) {
+  const subscribers = matchSubscribers.get(matchId);
+  if (!subscribers) return;
+  subscribers.delete(socket);
+  if (subscribers.size === 0) {
+    matchSubscribers.delete(matchId);
+  }
+}
+function cleanupSubcriptions(socket) {
+  for (const matchId of socket.subcriptions) {
+    unsubscribe(matchId, socket);
+  }
+}
+function broadcastToMatch(matchId, payload) {
+  const subcribers = matchSubscribers.get(matchId);
+  if (!subcribers || subcribers.size === 0) return;
+  const message = JSON.stringify(payload);
+  for (const client of subcribers) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
 function sendJson(socket, payload) {
   if (socket.readyState !== WebSocket.OPEN) return;
   socket.send(JSON.stringify(payload));
 }
-function broadcast(wss, payload) {
+function broadcastToAll(wss, payload) {
   for (const client of wss.clients) {
     if (client.readyState !== WebSocket.OPEN) continue;
     client.send(JSON.stringify(payload));
@@ -82,7 +113,7 @@ export function attachWebSocketServer(server) {
   wss.on("close", () => clearInterval(interval));
 
   function broadcastMatchCreated(match) {
-    broadcast(wss, { type: "match_created", data: match });
+    broadcastToAll(wss, { type: "match_created", data: match });
   }
   //sharing function broadcastMatchCreated
   return { broadcastMatchCreated };
