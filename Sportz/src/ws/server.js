@@ -16,16 +16,16 @@ function unsubscribe(matchId, socket) {
     matchSubscribers.delete(matchId);
   }
 }
-function cleanupSubcriptions(socket) {
-  for (const matchId of socket.subcriptions) {
+function cleanupSubscriptions(socket) {
+  for (const matchId of socket.subscriptions) {
     unsubscribe(matchId, socket);
   }
 }
 function broadcastToMatch(matchId, payload) {
-  const subcribers = matchSubscribers.get(matchId);
-  if (!subcribers || subcribers.size === 0) return;
+  const subscribers = matchSubscribers.get(matchId);
+  if (!subscribers || subscribers.size === 0) return;
   const message = JSON.stringify(payload);
-  for (const client of subcribers) {
+  for (const client of subscribers) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
